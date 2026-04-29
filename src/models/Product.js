@@ -42,6 +42,14 @@ const ProductSchema = new mongoose.Schema({
   isAvailable: {
     type: Boolean,
     default: true
+  },
+  image: {
+    type: String,
+    default: null
+  },
+  images: {
+    type: [String],
+    default: []
   }
 }, {
   timestamps: true  // Automatically adds createdAt and updatedAt

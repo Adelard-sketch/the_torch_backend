@@ -1,19 +1,193 @@
-# The Torch Backend - Node.js/Express/MongoDB
+# The Torch Ghana - Node.js Backend
 
-Backend API for The Torch Initiative - Empowering refugee and IDP communities through agricultural education and digital innovation.
+Node.js/Express/MongoDB backend for the The Torch agricultural marketplace platform.
 
-## 🚀 Tech Stack
+## Features
 
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Database:** MongoDB with Mongoose ODM
-- **Authentication:** JWT (JSON Web Tokens)
-- **Password Hashing:** bcrypt
-- **Email Service:** Nodemailer (Gmail SMTP)
-- **Security:** Helmet, CORS
-- **Rate Limiting:** express-rate-limit
+- ✅ User authentication (register/login) with JWT
+- ✅ Password hashing with bcrypt (cost factor 10)
+- ✅ Product CRUD operations with ownership checks
+- ✅ **File upload system** (profile pictures, product images, attachments)
+- ✅ Text search on products (name + description)
+- ✅ Category filtering and pagination
+- ✅ Role-based access (farmer, customer, vendor, gardener)
+- ✅ Rate limiting on login endpoint (5 attempts per 15 min)
+- ✅ CORS configured for frontend
+- ✅ Security headers with Helmet
 
-## 📁 Project Structure
+## Prerequisites
+
+- Node.js (v16 or higher)
+- MongoDB (v5 or higher) running locally or remote connection string
+
+## Installation
+
+1. Install dependencies:
+```bash
+cd back
+npm install
+```
+
+2. Configure environment variables:
+Edit `.env` file and update:
+- `MONGODB_URI` - Your MongoDB connection string
+- `JWT_SECRET` - A strong random secret key
+- `PORT` - Server port (default: 5000)
+- `FRONTEND_URL` - Your frontend URL for CORS
+
+3. Start MongoDB (if running locally):
+```bash
+mongod
+```
+
+4. Start the server:
+```bash
+# Development mode (with auto-reload)
+npm run dev
+
+# Production mode
+npm start
+```
+
+The server will start on `http://localhost:5000`
+
+## API Endpoints
+
+### Authentication
+
+#### Register
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Kwame",
+  "lastName": "Mensah",
+  "email": "kwame@example.com",
+  "phone": "+233201234567",
+  "role": "farmer",
+  "password": "securepass123"
+}
+```
+
+#### Login
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "kwame@example.com",
+  "password": "securepass123"
+}
+```
+
+### Products
+
+#### List Products (with filters)
+```http
+GET /api/products?category=produce&search=tomato&limit=20&offset=0
+```
+
+#### Get Single Product
+```http
+GET /api/products/:id
+```
+
+#### Create Product (requires auth)
+```http
+POST /api/products
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "productName": "Fresh Tomatoes",
+  "description": "Ripe tomatoes from Ashanti region",
+  "category": "produce",
+  "price": 15.00,
+  "quantityAvailable": 50,
+  "unit": "kg",
+  "image": "/uploads/product/file-123.jpg",
+  "images": ["/uploads/product/file-123.jpg"]
+}
+```
+
+#### Update Product (requires auth + ownership)
+```http
+PUT /api/products/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "price": 12.00,
+  "quantityAvailable": 30
+}
+```
+
+#### Delete Product (requires auth + ownership)
+```http
+DELETE /api/products/:id
+Authorization: Bearer <token>
+```
+
+### File Upload (NEW)
+
+#### Upload File
+```http
+POST /api/files/upload
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "userId": "user-id",
+  "fileName": "image.jpg",
+  "fileSize": 245632,
+  "fileType": "image/jpeg",
+  "fileData": "base64-encoded-data",
+  "purpose": "product",
+  "metadata": {}
+}
+```
+
+#### Update Profile Picture
+```http
+POST /api/users/:userId/profile-picture
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "profilePicture": "base64-encoded-data"
+}
+```
+
+#### Update Cover Image
+```http
+POST /api/users/:userId/cover-image
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "coverImage": "base64-encoded-data"
+}
+```
+
+#### Add Product Image
+```http
+POST /api/files/products/:productId/images
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "userId": "user-id",
+  "fileName": "product.jpg",
+  "fileSize": 245632,
+  "fileType": "image/jpeg",
+  "fileData": "base64-encoded-data"
+}
+```
+
+See `FILE_UPLOAD_SETUP.md` for complete file upload documentation.
+
+## Project Structure
 
 ```
 back/
@@ -21,132 +195,136 @@ back/
 │   ├── config/
 │   │   └── db.js              # MongoDB connection
 │   ├── models/
-│   │   ├── User.js            # User schema
-│   │   ├── Product.js         # Product schema
-│   │   ├── Order.js           # Order schema
-│   │   └── Contact.js         # Contact form schema
+│   │   ├── User.js            # User schema (with profilePicture, coverImage)
+│   │   ├── Product.js         # Product schema (with image, images[])
+│   │   ├── File.js            # File metadata schema
+│   │   └── Message.js         # Message schema (with attachments)
 │   ├── controllers/
-│   │   ├── authController.js  # Authentication logic
-│   │   ├── productController.js
-│   │   ├── orderController.js
-│   │   └── contactController.js
+│   │   ├── authController.js  # Auth logic
+│   │   ├── productController.js # Product logic
+│   │   ├── fileController.js  # File upload logic
+│   │   └── userController.js  # User profile logic
 │   ├── middleware/
 │   │   └── auth.js            # JWT verification
 │   ├── routes/
-│   │   ├── auth.js
-│   │   ├── products.js
-│   │   ├── orders.js
-│   │   └── contact.js
-│   ├── services/
-│   │   └── emailService.js    # Email notifications
+│   │   ├── auth.js            # Auth routes
+│   │   ├── products.js        # Product routes
+│   │   ├── files.js           # File upload routes
+│   │   └── users.js           # User routes
 │   └── app.js                 # Express app setup
-├── server.js                  # Entry point
-├── package.json
+├── uploads/                   # File storage
+│   ├── profile/
+│   ├── product/
+│   ├── message/
+│   └── document/
 ├── .env                       # Environment variables
-├── vercel.json               # Vercel deployment config
-└── README.md                 # This file
+├── package.json
+├── server.js                  # Entry point
+├── README.md                  # This file
+└── FILE_UPLOAD_SETUP.md       # File upload documentation
 ```
 
-## 🔧 API Endpoints
+## Frontend Integration
 
-### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-
-### Products
-- `GET /api/products` - List all products (with pagination, search, filters)
-- `POST /api/products` - Create product (requires auth)
-- `GET /api/products/:id` - Get single product
-- `PUT /api/products/:id` - Update product (requires auth, owner only)
-- `DELETE /api/products/:id` - Delete product (requires auth, owner only)
-
-### Orders
-- `POST /api/orders` - Create order (requires auth)
-- `GET /api/orders` - Get user's orders (requires auth)
-- `GET /api/orders/:id` - Get single order (requires auth)
-- `PUT /api/orders/:id/cancel` - Cancel order (requires auth)
-
-### Contact
-- `POST /api/contact` - Submit contact form (public)
-- `GET /api/contact` - Get all contacts (requires auth, farmer role only)
-
-### Health Check
-- `GET /health` - Server health status
-
-## 🛠️ Local Development
-
-### Prerequisites
-- Node.js (v14 or higher)
-- MongoDB (local or Atlas)
-- npm or yarn
-
-### Installation
-
-1. **Install dependencies:**
-```bash
-npm install
+Update the frontend's base URL from:
+```javascript
+const baseURL = 'http://localhost/farmdialogue/back/api/';
 ```
 
-2. **Configure environment variables:**
-Create a `.env` file:
-```env
-MONGODB_URI=mongodb://localhost:27017/thetorch
-JWT_SECRET=your_jwt_secret_key
-PORT=5000
-NODE_ENV=development
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
-EMAIL_FROM=The Torch Initiative <your_email@gmail.com>
+To:
+```javascript
+const baseURL = 'http://localhost:5000/api/';
 ```
 
-3. **Start the server:**
-```bash
-npm start
-```
+The API response format matches the old PHP backend, so no other frontend changes are needed.
 
-Server will run on `http://localhost:5000`
+## File Upload System
 
-## 🌐 Production Deployment (Vercel)
+The backend now supports complete file upload functionality:
 
-See `DEPLOY_BACKEND.md` for detailed deployment instructions.
+- **Profile pictures** (5MB max)
+- **Cover images** (5MB max)
+- **Product images** (5MB max, multiple per product)
+- **Message attachments** (10MB max)
+- **Documents** (10MB max)
 
-Quick deploy:
-```bash
-vercel
-```
+Files are received as base64-encoded data and stored in `/uploads` directory.
 
-## 📧 Email Notifications
+**Key Features:**
+- Base64 encoding for secure transmission
+- File size and type validation
+- Unique file naming
+- Ownership verification
+- Local storage with CDN-ready structure
 
-The backend sends emails for:
-1. Welcome Email - When user registers
-2. Order Confirmation - When order is placed
-3. Contact Confirmation - When contact form is submitted
-4. Admin Notification - When contact form is submitted
+See `FILE_UPLOAD_SETUP.md` for complete documentation.
 
-## 🔒 Security Features
+## User Roles
 
-- JWT authentication with 1-hour expiration
-- Password hashing with bcrypt
-- Helmet for HTTP headers security
-- CORS configuration
-- Rate limiting on login endpoint
+- `farmer` - Can list and sell agricultural products
+- `customer` - Can browse and purchase products
+- `vendor` - Can sell equipment and supplies
+- `gardener` - Gardening enthusiasts
 
-## 🧪 Testing
+## Product Categories
 
-```bash
-node test-api.js
-```
+- `produce` - Fresh produce
+- `seeds` - Seeds and plants
+- `equipment` - Farm equipment
+- `fertilizer` - Fertilizers
+- `tools` - Gardening tools
 
-## 📝 License
+## Security Features
 
-MIT License - The Torch Initiative
+- Passwords hashed with bcrypt (cost factor 10)
+- JWT tokens expire after 1 hour
+- Rate limiting on login (5 attempts per 15 minutes)
+- CORS configured for specific frontend origin
+- Helmet security headers
+- Input validation on all endpoints
+- Ownership checks on update/delete operations
+- File size and type validation
+- Unique file naming to prevent collisions
 
-## 👥 Contributors
+## Development
 
-Backend Developer: Adelard Borauzima
+The backend uses:
+- Express.js for HTTP server and routing
+- Mongoose for MongoDB ODM
+- bcryptjs for password hashing
+- jsonwebtoken for JWT authentication
+- helmet for security headers
+- cors for cross-origin requests
+- express-rate-limit for rate limiting
+- fs/promises for file operations (built-in)
 
-## 🔗 Frontend Repository
+## Troubleshooting
 
-https://github.com/iamathanase/the-torch
+### MongoDB Connection Issues
+- Ensure MongoDB is running: `mongod`
+- Check connection string in `.env`
+- Verify MongoDB port (default: 27017)
+
+### CORS Errors
+- Update `FRONTEND_URL` in `.env` to match your frontend URL
+- Ensure frontend sends requests to `http://localhost:5000/api/`
+
+### JWT Token Issues
+- Ensure `JWT_SECRET` is set in `.env`
+- Check token expiry (tokens expire after 1 hour)
+- Verify Authorization header format: `Bearer <token>`
+
+### File Upload Issues
+- Check uploads directory exists and is writable
+- Verify file size doesn't exceed limits
+- Ensure file type is allowed for the purpose
+- Check base64 encoding is correct
+
+## License
+
+ISC
+
+---
+
+**Status:** ✅ Production Ready with File Upload System
+**Last Updated:** April 28, 2026

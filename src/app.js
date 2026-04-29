@@ -5,6 +5,8 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const contactRoutes = require('./routes/contact');
+const userRoutes = require('./routes/users');
+const fileRoutes = require('./routes/files');
 
 const app = express();
 
@@ -13,12 +15,10 @@ app.use(helmet());
 
 // CORS configuration - allow frontend origin
 const allowedOrigins = [
+  'http://localhost:5173',
   'http://localhost:5500',
   'http://127.0.0.1:5500',
   'http://localhost:3000',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'https://the-torch.vercel.app',
   'null' // Allow file:// protocol for local development
 ];
 
@@ -37,9 +37,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Body parser middleware - parse JSON request bodies
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body parser middleware - parse JSON request bodies (increased limit for base64 files)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Request logging middleware (development only)
 if (process.env.NODE_ENV === 'development') {
@@ -58,11 +58,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
+
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/files', fileRoutes);
 
 // 404 handler - catch all unmatched routes
 app.use((req, res) => {

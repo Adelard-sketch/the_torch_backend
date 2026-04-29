@@ -106,7 +106,7 @@ const getProduct = async (req, res) => {
  */
 const createProduct = async (req, res) => {
   try {
-    const { productName, description, category, price, quantityAvailable, unit } = req.body;
+    const { productName, description, category, price, quantityAvailable, unit, image, images } = req.body;
 
     // Validate required fields
     if (!productName || price === undefined || quantityAvailable === undefined) {
@@ -140,7 +140,9 @@ const createProduct = async (req, res) => {
       category: category || 'produce',
       price,
       quantityAvailable,
-      unit: unit || 'kg'
+      unit: unit || 'kg',
+      image: image || null,
+      images: images || []
     });
 
     // Populate seller info before returning
@@ -171,7 +173,7 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { productName, description, category, price, quantityAvailable, unit, isAvailable } = req.body;
+    const { productName, description, category, price, quantityAvailable, unit, isAvailable, image, images } = req.body;
 
     // Find product by ID
     const product = await Product.findById(id);
@@ -217,6 +219,8 @@ const updateProduct = async (req, res) => {
     }
     if (unit !== undefined) updates.unit = unit;
     if (isAvailable !== undefined) updates.isAvailable = isAvailable;
+    if (image !== undefined) updates.image = image;
+    if (images !== undefined) updates.images = images;
 
     // Apply updates
     Object.assign(product, updates);
