@@ -1,23 +1,14 @@
 const express = require('express');
 const { verifyToken } = require('../middleware/auth');
-const { upload } = require('../middleware/upload');
 const { 
   getProducts, 
   getProduct, 
   createProduct, 
   updateProduct, 
-  deleteProduct,
-  uploadImage
+  deleteProduct 
 } = require('../controllers/productController');
 
 const router = express.Router();
-
-/**
- * @route   POST /api/products/upload
- * @desc    Upload product image to Cloudinary
- * @access  Private (requires authentication)
- */
-router.post('/upload', verifyToken, upload.single('image'), uploadImage);
 
 /**
  * @route   GET /api/products
@@ -55,4 +46,3 @@ router.put('/:id', verifyToken, updateProduct);
 router.delete('/:id', verifyToken, deleteProduct);
 
 module.exports = router;
-
