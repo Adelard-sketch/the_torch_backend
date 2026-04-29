@@ -1,4 +1,40 @@
 const Product = require('../models/Product');
+const { uploadToCloudinary } = require('../middleware/upload');
+
+/**
+ * Upload product image to Cloudinary
+ * @route POST /api/products/upload
+ */
+const uploadImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        status: 400,
+        message: 'No image file provided'
+      });
+    }
+
+    // Upload to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer, 'thetorch/products');
+
+    // Return Cloudinary URL
+    return res.status(200).json({
+      status: 200,
+      data: {
+        url: result.secure_url,
+        publicId: result.public_id
+      }
+    });
+
+  } catch (error) {
+    console.error('Upload image error:', error);
+    return res.status(500).json({
+      status: 500,
+      message: 'Failed to upload image',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 
 /**
  * Get all products with optional filters
@@ -318,5 +354,6 @@ module.exports = {
   getProduct,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  uploadImage
 };

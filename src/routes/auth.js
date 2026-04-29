@@ -41,6 +41,6 @@ router.post('/register', register);
  * @desc    Login user and return JWT token
  * @access  Public
  */
-router.post('/login', login);
+router.post('/login', loginLimiter, login);
 
 module.exports = router;
