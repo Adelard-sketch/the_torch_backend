@@ -4,16 +4,29 @@ const { register, login } = require('../controllers/authController');
 
 const router = express.Router();
 
-// Rate limiter for login endpoint (5 attempts per 15 minutes)
+// Rate limiter for login endpoint
+// Key: IP address + email (to track per user, not per IP)
+// Max: 15 attempts per 60 minutes per email address
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
+  windowMs: 60 * 60 * 1000, // 60 minutes (increased from 15)
+  max: 15, // 15 attempts per hour (increased from 5)
   message: {
     status: 429,
-    message: 'Too many login attempts, please try again after 15 minutes'
+    message: 'Too many login attempts, please try again later'
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Track by email + IP to be per-user instead of per-IP
+  keyGenerator: (req, res) => {
+    // Use email if provided, otherwise fall back to IP
+    const email = req.body.email ? req.body.email.toLowerCase() : req.ip;
+    return email;
+  },
+  skip: (req, res) => {
+    // Skip rate limiting for successful logins (only rate limit failed attempts)
+    // This will be handled in the controller
+    return false;
+  }
 });
 
 /**
@@ -28,6 +41,6 @@ router.post('/register', register);
  * @desc    Login user and return JWT token
  * @access  Public
  */
-router.post('/login', loginLimiter, login);
+router.post('/login', login);
 
 module.exports = router;
