@@ -52,6 +52,11 @@ const UserSchema = new mongoose.Schema({
   coverImage: {
     type: String,
     default: null
+  },
+  bio: {
+    type: String,
+    default: '',
+    maxlength: [500, 'Bio cannot exceed 500 characters']
   }
 }, {
   timestamps: true  // Automatically adds createdAt and updatedAt
