@@ -4,48 +4,30 @@ const connectDB = require('./src/config/db');
 
 const PORT = process.env.PORT || 5000;
 
-// Initialize database connection
-let dbConnected = false;
+// Initialize database connection immediately
+connectDB().catch(err => {
+  console.error('Initial DB connection failed:', err);
+});
 
-const initDB = async () => {
-  if (!dbConnected) {
-    try {
-      await connectDB();
-      dbConnected = true;
-    } catch (error) {
-      console.error('Failed to connect to database:', error);
-    }
-  }
-};
+// Export for Vercel serverless
+module.exports = app;
 
-// For Vercel serverless deployment
-if (process.env.VERCEL) {
-  // Connect to DB on cold start
-  initDB();
-  module.exports = app;
-} else {
-  // Start server for local development
-  initDB().then(() => {
-    const server = app.listen(PORT, () => {
-      console.log(`The Torch backend running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV}`);
-    });
-
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received: closing HTTP server');
-      server.close(() => {
-        console.log('HTTP server closed');
-        process.exit(0);
-      });
-    });
-
-    process.on('SIGINT', () => {
-      console.log('SIGINT signal received: closing HTTP server');
-      server.close(() => {
-        console.log('HTTP server closed');
-        process.exit(0);
-      });
-    });
+// Only start server if not in Vercel environment
+if (!process.env.VERCEL && require.main === module) {
+  const server = app.listen(PORT, () => {
+    console.log(`The Torch backend running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
   });
+
+  // Graceful shutdown
+  const shutdown = () => {
+    console.log('Shutting down gracefully...');
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
