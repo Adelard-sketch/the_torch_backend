@@ -22,6 +22,13 @@ const getLessons = async (req, res) => {
       .sort({ createdAt: -1 });
 
     console.log(`Found ${lessons.length} lessons`);
+    
+    // Log video URLs for debugging
+    lessons.forEach(lesson => {
+      if (lesson.videoUrl) {
+        console.log(`Lesson "${lesson.title}" has videoUrl:`, lesson.videoUrl);
+      }
+    });
 
     return res.status(200).json({
       status: 200,
@@ -95,9 +102,9 @@ const createLesson = async (req, res) => {
       });
     }
 
-    const { title, category, content, image, durationMin, level, isPublished } = req.body;
+    const { title, category, content, image, videoUrl, durationMin, level, isPublished } = req.body;
 
-    console.log('Creating lesson with data:', { title, category, content: content?.substring(0, 50), durationMin, level });
+    console.log('Creating lesson with data:', { title, category, content: content?.substring(0, 50), videoUrl, durationMin, level });
 
     // Validate required fields
     if (!title || !content || !durationMin) {
@@ -113,6 +120,7 @@ const createLesson = async (req, res) => {
       category: category || 'Agriculture',
       content,
       image: image || null,
+      videoUrl: videoUrl || null,
       durationMin,
       level: level || 'beginner',
       isPublished: isPublished !== undefined ? isPublished : true
@@ -161,7 +169,7 @@ const updateLesson = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { title, category, content, image, durationMin, level, isPublished } = req.body;
+    const { title, category, content, image, videoUrl, durationMin, level, isPublished } = req.body;
 
     const lesson = await Lesson.findById(id);
 
@@ -178,6 +186,7 @@ const updateLesson = async (req, res) => {
     if (category !== undefined) updates.category = category;
     if (content !== undefined) updates.content = content;
     if (image !== undefined) updates.image = image;
+    if (videoUrl !== undefined) updates.videoUrl = videoUrl;
     if (durationMin !== undefined) updates.durationMin = durationMin;
     if (level !== undefined) updates.level = level;
     if (isPublished !== undefined) updates.isPublished = isPublished;
