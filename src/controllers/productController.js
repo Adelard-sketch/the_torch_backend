@@ -9,7 +9,7 @@ const getProducts = async (req, res) => {
   try {
     const { category, search, limit, offset } = req.query;
 
-    // Build query filter - always start with isAvailable: true
+    // Build query filter - show all available products
     const filter = { isAvailable: true };
 
     // Add category filter if provided
@@ -23,8 +23,10 @@ const getProducts = async (req, res) => {
     }
 
     // Parse and clamp pagination parameters
-    const parsedLimit = Math.min(parseInt(limit) || 20, 100); // Default 20, max 100
+    const parsedLimit = Math.min(parseInt(limit) || 100, 100); // Default 100, max 100
     const parsedOffset = parseInt(offset) || 0; // Default 0
+
+    console.log('Fetching products with filter:', filter);
 
     // Query products with filters, populate seller info, sort by date
     const products = await Product
@@ -33,6 +35,8 @@ const getProducts = async (req, res) => {
       .sort({ createdAt: -1 }) // Sort by creation date descending
       .skip(parsedOffset)
       .limit(parsedLimit);
+
+    console.log(`Found ${products.length} products`);
 
     // Return response matching PHP format
     return res.status(200).json({
@@ -144,13 +148,15 @@ const createProduct = async (req, res) => {
       userId: req.user.userId, // From JWT token
       productName: finalProductName,
       description: description || '',
-      category: category || 'produce',
+      category: category || 'agricultural',
       price,
       quantityAvailable: finalQuantity,
       unit: unit || 'kg',
       image: image || null,
       images: images || []
     });
+    
+    console.log('Product created successfully:', product._id);
 
     // Populate seller info before returning
     await product.populate('userId', 'firstName lastName role');
@@ -165,6 +171,17 @@ const createProduct = async (req, res) => {
 
   } catch (error) {
     console.error('Create product error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({
+        status: 400,
+        message: 'Validation failed',
+        errors: errors
+      });
+    }
+    
     return res.status(500).json({
       status: 500,
       message: 'Failed to create product',

@@ -19,10 +19,10 @@ const ProductSchema = new mongoose.Schema({
   category: {
     type: String,
     enum: {
-      values: ['produce', 'seeds', 'equipment', 'fertilizer', 'tools'],
+      values: ['agricultural', 'produce', 'seeds', 'equipment', 'fertilizer', 'tools', 'other'],
       message: '{VALUE} is not a valid category'
     },
-    default: 'produce'
+    default: 'agricultural'
   },
   price: {
     type: Number,
