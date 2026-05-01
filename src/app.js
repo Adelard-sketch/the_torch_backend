@@ -41,27 +41,55 @@ app.use((req, res, next) => {
 
 // Database connection middleware for serverless
 app.use(async (req, res, next) => {
+  // Skip DB check for health endpoints
+  if (req.path === '/health' || req.path === '/api/health') {
+    return next();
+  }
+
   const mongoose = require('mongoose');
   if (mongoose.connection.readyState !== 1) {
     try {
+      console.log('Connecting to database...');
       await connectDB();
+      console.log('Database connected successfully');
     } catch (error) {
-      console.error('Database connection failed:', error);
+      console.error('Database connection failed:', error.message);
       return res.status(503).json({
         status: 503,
-        message: 'Service temporarily unavailable - database connection failed'
+        message: 'Service temporarily unavailable - database connection failed',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
   next();
 });
 
-// Health check endpoint
+// Health check endpoint (no DB required)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     message: 'The Torch backend is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    env: {
+      nodeEnv: process.env.NODE_ENV,
+      hasMongoUri: !!process.env.MONGODB_URI,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+    }
+  });
+});
+
+// API health check with DB status
+app.get('/api/health', async (req, res) => {
+  const mongoose = require('mongoose');
+  res.status(200).json({
+    status: 'ok',
+    message: 'API is running',
+    timestamp: new Date().toISOString(),
+    database: {
+      connected: mongoose.connection.readyState === 1,
+      state: mongoose.connection.readyState,
+      host: mongoose.connection.host || 'not connected'
+    }
   });
 });
 
@@ -87,7 +115,8 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Global error handler:', err);
+  console.error('Error stack:', err.stack);
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
@@ -107,12 +136,30 @@ app.use((err, req, res, next) => {
     });
   }
 
+  // CORS error
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({
+      status: 403,
+      message: 'CORS error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+
   // Default error response
   res.status(err.status || 500).json({
     status: err.status || 500,
     message: err.message || 'Internal server error',
     error: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
+});
+
+// Catch any unhandled errors
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
 });
 
 module.exports = app;
