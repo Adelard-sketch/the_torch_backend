@@ -15,9 +15,13 @@ const getLessons = async (req, res) => {
     if (level) filter.level = level;
     if (search) filter.$text = { $search: search };
 
+    console.log('Fetching lessons with filter:', filter);
+
     const lessons = await Lesson
       .find(filter)
       .sort({ createdAt: -1 });
+
+    console.log(`Found ${lessons.length} lessons`);
 
     return res.status(200).json({
       status: 200,
@@ -93,6 +97,8 @@ const createLesson = async (req, res) => {
 
     const { title, category, content, image, durationMin, level, isPublished } = req.body;
 
+    console.log('Creating lesson with data:', { title, category, content: content?.substring(0, 50), durationMin, level });
+
     // Validate required fields
     if (!title || !content || !durationMin) {
       return res.status(400).json({
@@ -112,6 +118,8 @@ const createLesson = async (req, res) => {
       isPublished: isPublished !== undefined ? isPublished : true
     });
 
+    console.log('Lesson created successfully:', lesson._id);
+
     return res.status(201).json({
       status: 201,
       data: { lesson }
@@ -119,6 +127,17 @@ const createLesson = async (req, res) => {
 
   } catch (error) {
     console.error('Create lesson error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({
+        status: 400,
+        message: 'Validation failed',
+        errors: errors
+      });
+    }
+    
     return res.status(500).json({
       status: 500,
       message: 'Failed to create lesson',
