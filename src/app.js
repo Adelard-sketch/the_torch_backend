@@ -12,52 +12,31 @@ const lessonRoutes = require('./routes/lessons');
 const app = express();
 
 // Security middleware - helmet sets various HTTP headers for security
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
 
 // CORS configuration - allow frontend origin
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5500',
-  'http://127.0.0.1:5500',
-  'http://localhost:3000',
-  'https://the-torch.vercel.app',
-  'https://the-torch-git-main-iamathanases-projects.vercel.app', // Vercel preview URLs
-  'https://the-torch-iamathanases-projects.vercel.app', // Vercel preview URLs
-  'null' // Allow file:// protocol for local development
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin) || (origin && origin.includes('the-torch') && origin.includes('vercel.app'))) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(null, true); // Allow all origins temporarily for debugging
-    }
-  },
+app.use(cors({
+  origin: true, // Allow all origins temporarily
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400 // 24 hours
-};
-app.use(cors(corsOptions));
+}));
 
 // Explicit OPTIONS handling for all routes
-app.options('*', cors(corsOptions));
+app.options('*', cors());
 
 // Body parser middleware - parse JSON request bodies (increased limit for base64 files)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Request logging middleware (development only)
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`);
-    next();
-  });
-}
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
