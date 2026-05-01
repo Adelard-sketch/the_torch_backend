@@ -9,6 +9,7 @@ const contactRoutes = require('./routes/contact');
 const userRoutes = require('./routes/users');
 const fileRoutes = require('./routes/files');
 const lessonRoutes = require('./routes/lessons');
+const messageRoutes = require('./routes/messages');
 
 const app = express();
 
@@ -104,6 +105,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/lessons', lessonRoutes);
+app.use('/api/messages', messageRoutes);
 
 // 404 handler - catch all unmatched routes
 app.use((req, res) => {
