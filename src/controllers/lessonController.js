@@ -25,9 +25,12 @@ const getLessons = async (req, res) => {
     
     // Log video URLs for debugging
     lessons.forEach(lesson => {
-      if (lesson.videoUrl) {
-        console.log(`Lesson "${lesson.title}" has videoUrl:`, lesson.videoUrl);
-      }
+      console.log(`Lesson "${lesson.title}":`, {
+        _id: lesson._id,
+        videoUrl: lesson.videoUrl,
+        hasVideoUrl: !!lesson.videoUrl,
+        image: lesson.image ? 'has image' : 'no image'
+      });
     });
 
     return res.status(200).json({
@@ -104,7 +107,15 @@ const createLesson = async (req, res) => {
 
     const { title, category, content, image, videoUrl, durationMin, level, isPublished } = req.body;
 
-    console.log('Creating lesson with data:', { title, category, content: content?.substring(0, 50), videoUrl, durationMin, level });
+    console.log('Creating lesson with data:', { 
+      title, 
+      category, 
+      content: content?.substring(0, 50), 
+      image: image ? 'provided' : 'null',
+      videoUrl: videoUrl || 'null', 
+      durationMin, 
+      level 
+    });
 
     // Validate required fields
     if (!title || !content || !durationMin) {
@@ -126,7 +137,12 @@ const createLesson = async (req, res) => {
       isPublished: isPublished !== undefined ? isPublished : true
     });
 
-    console.log('Lesson created successfully:', lesson._id);
+    console.log('✅ Lesson created successfully:', {
+      id: lesson._id,
+      title: lesson.title,
+      videoUrl: lesson.videoUrl,
+      hasVideoUrl: !!lesson.videoUrl
+    });
 
     return res.status(201).json({
       status: 201,
@@ -171,6 +187,18 @@ const updateLesson = async (req, res) => {
     const { id } = req.params;
     const { title, category, content, image, videoUrl, durationMin, level, isPublished } = req.body;
 
+    console.log('Updating lesson:', id);
+    console.log('Update data:', {
+      title,
+      category,
+      content: content?.substring(0, 50),
+      image: image !== undefined ? 'provided' : 'not provided',
+      videoUrl: videoUrl !== undefined ? videoUrl : 'not provided',
+      durationMin,
+      level,
+      isPublished
+    });
+
     const lesson = await Lesson.findById(id);
 
     if (!lesson) {
@@ -191,8 +219,17 @@ const updateLesson = async (req, res) => {
     if (level !== undefined) updates.level = level;
     if (isPublished !== undefined) updates.isPublished = isPublished;
 
+    console.log('Applying updates:', updates);
+
     Object.assign(lesson, updates);
     await lesson.save();
+
+    console.log('✅ Lesson updated:', {
+      id: lesson._id,
+      title: lesson.title,
+      videoUrl: lesson.videoUrl,
+      hasVideoUrl: !!lesson.videoUrl
+    });
 
     return res.status(200).json({
       status: 200,
