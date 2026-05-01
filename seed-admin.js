@@ -9,12 +9,12 @@ const bcrypt = require('bcryptjs');
 const User = require('./src/models/User');
 
 const ADMIN_ACCOUNT = {
-  firstName: 'Admin',
-  lastName: 'User',
-  email: 'admin@farmdialogue.com',
-  phone: '+233200000000',
-  role: 'farmer', 
-  password: 'admin123456', 
+  firstName: process.env.ADMIN_FIRST_NAME || 'Adelard',
+  lastName: process.env.ADMIN_LAST_NAME || 'Borauzima',
+  email: process.env.ADMIN_EMAIL || 'adelardborauzima7@gmail.com',
+  phone: process.env.ADMIN_PHONE || '+233000000000',
+  role: 'admin', 
+  password: process.env.ADMIN_PASSWORD || 'AdelMir1$', 
   isVerified: true,
   isActive: true
 };

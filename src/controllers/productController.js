@@ -107,13 +107,19 @@ const getProduct = async (req, res) => {
  */
 const createProduct = async (req, res) => {
   try {
-    const { productName, description, category, price, quantityAvailable, unit, image, images } = req.body;
+    const { productName, name, title, description, category, price, quantityAvailable, stock, unit, image, images } = req.body;
+
+    // Accept productName, name, or title (frontend compatibility)
+    const finalProductName = productName || name || title;
+    
+    // Accept quantityAvailable or stock (frontend compatibility)
+    const finalQuantity = quantityAvailable !== undefined ? quantityAvailable : stock;
 
     // Validate required fields
-    if (!productName || price === undefined || quantityAvailable === undefined) {
+    if (!finalProductName || price === undefined || finalQuantity === undefined) {
       return res.status(400).json({
         status: 400,
-        message: 'Product name, price, and quantity available are required'
+        message: 'Product name, price, and quantity are required'
       });
     }
 
@@ -125,8 +131,8 @@ const createProduct = async (req, res) => {
       });
     }
 
-    // Validate quantityAvailable is non-negative
-    if (quantityAvailable < 0) {
+    // Validate quantity is non-negative
+    if (finalQuantity < 0) {
       return res.status(400).json({
         status: 400,
         message: 'Quantity cannot be negative'
@@ -136,11 +142,11 @@ const createProduct = async (req, res) => {
     // Create product with authenticated user as owner
     const product = await Product.create({
       userId: req.user.userId, // From JWT token
-      productName,
+      productName: finalProductName,
       description: description || '',
       category: category || 'produce',
       price,
-      quantityAvailable,
+      quantityAvailable: finalQuantity,
       unit: unit || 'kg',
       image: image || null,
       images: images || []
@@ -320,7 +326,7 @@ const deleteProduct = async (req, res) => {
  */
 const uploadImage = async (req, res) => {
   try {
-    // Check if file was uploaded
+    // Check if file exists
     if (!req.file) {
       return res.status(400).json({
         status: 400,
@@ -329,7 +335,7 @@ const uploadImage = async (req, res) => {
     }
 
     // Upload to Cloudinary
-    const result = await uploadToCloudinary(req.file.buffer, 'thetorch/products');
+    const result = await uploadToCloudinary(req.file.buffer, 'products');
 
     // Return Cloudinary URL
     return res.status(200).json({
@@ -341,7 +347,7 @@ const uploadImage = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Upload image error:', error);
+    console.error('Image upload error:', error);
     return res.status(500).json({
       status: 500,
       message: 'Failed to upload image',
