@@ -21,21 +21,25 @@ const allowedOrigins = [
   'http://127.0.0.1:5500',
   'http://localhost:3000',
   'https://the-torch.vercel.app',
+  'https://the-torch-git-main-iamathanases-projects.vercel.app', // Vercel preview URLs
+  'https://the-torch-iamathanases-projects.vercel.app', // Vercel preview URLs
   'null' // Allow file:// protocol for local development
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || (origin && origin.includes('the-torch') && origin.includes('vercel.app'))) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Allow all origins temporarily for debugging
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
   maxAge: 86400 // 24 hours
 };
 app.use(cors(corsOptions));
