@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
@@ -35,6 +36,23 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// Database connection middleware for serverless
+app.use(async (req, res, next) => {
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      await connectDB();
+    } catch (error) {
+      console.error('Database connection failed:', error);
+      return res.status(503).json({
+        status: 503,
+        message: 'Service temporarily unavailable - database connection failed'
+      });
+    }
+  }
   next();
 });
 
