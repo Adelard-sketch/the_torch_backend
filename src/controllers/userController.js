@@ -1,5 +1,4 @@
 const User = require('../models/User');
-const { uploadToCloudinary } = require('../middleware/upload');
 
 /**
  * @route   POST /api/users/:userId/profile-picture
@@ -10,19 +9,10 @@ exports.uploadProfilePicture = async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Check if file was uploaded
-    if (!req.file) {
+    if (!req.file && !req.body.profilePicture) {
       return res.status(400).json({ 
         status: 400, 
-        message: 'No image file provided' 
-      });
-    }
-
-    // Verify user owns this profile or is admin
-    if (req.user.userId !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({
-        status: 403,
-        message: 'Forbidden'
+        message: 'No file or image data provided' 
       });
     }
 
@@ -34,11 +24,15 @@ exports.uploadProfilePicture = async (req, res) => {
       });
     }
 
-    // Upload to Cloudinary
-    const result = await uploadToCloudinary(req.file.buffer, 'thetorch/profiles');
-    
-    // Update user profile picture
-    user.profilePicture = result.secure_url;
+    // Handle file upload or base64 data
+    if (req.file) {
+      // If using multer or similar file upload middleware
+      user.profilePicture = req.file.path || req.file.filename;
+    } else if (req.body.profilePicture) {
+      // Handle base64 image data (for small images)
+      user.profilePicture = req.body.profilePicture;
+    }
+
     await user.save();
 
     res.json({
@@ -54,7 +48,7 @@ exports.uploadProfilePicture = async (req, res) => {
     res.status(500).json({
       status: 500,
       message: 'Error uploading profile picture',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
 };
@@ -68,19 +62,10 @@ exports.uploadCoverImage = async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Check if file was uploaded
-    if (!req.file) {
+    if (!req.file && !req.body.coverImage) {
       return res.status(400).json({ 
         status: 400, 
-        message: 'No image file provided' 
-      });
-    }
-
-    // Verify user owns this profile or is admin
-    if (req.user.userId !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({
-        status: 403,
-        message: 'Forbidden'
+        message: 'No file or image data provided' 
       });
     }
 
@@ -92,11 +77,13 @@ exports.uploadCoverImage = async (req, res) => {
       });
     }
 
-    // Upload to Cloudinary
-    const result = await uploadToCloudinary(req.file.buffer, 'thetorch/covers');
-    
-    // Update user cover image
-    user.coverImage = result.secure_url;
+    // Handle file upload or base64 data
+    if (req.file) {
+      user.coverImage = req.file.path || req.file.filename;
+    } else if (req.body.coverImage) {
+      user.coverImage = req.body.coverImage;
+    }
+
     await user.save();
 
     res.json({
@@ -112,7 +99,7 @@ exports.uploadCoverImage = async (req, res) => {
     res.status(500).json({
       status: 500,
       message: 'Error uploading cover image',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
 };
@@ -145,7 +132,6 @@ exports.getUserProfile = async (req, res) => {
         phone: user.phone,
         role: user.role,
         profilePicture: user.profilePicture,
-        coverImage: user.coverImage,
         isVerified: user.isVerified,
         createdAt: user.createdAt
       }
@@ -155,28 +141,64 @@ exports.getUserProfile = async (req, res) => {
     res.status(500).json({
       status: 500,
       message: 'Error retrieving user profile',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
 };
 
 /**
- * @route   PUT /api/users/:userId
- * @desc    Update user profile information
- * @access  Private
+ * @route   GET /api/users
+ * @desc    Get all users (admin only)
+ * @access  Private (admin only)
  */
+exports.getAllUsers = async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        status: 403,
+        message: 'Forbidden: Admin access required'
+      });
+    }
+
+    // Fetch all users, excluding password
+    const users = await User.find({ isActive: true })
+      .select('-passwordHash')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      status: 200,
+      message: 'Users retrieved successfully',
+      data: {
+        users: users.map(user => ({
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          profilePicture: user.profilePicture,
+          coverImage: user.coverImage,
+          bio: user.bio,
+          isVerified: user.isVerified,
+          createdAt: user.createdAt
+        })),
+        count: users.length
+      }
+    });
+  } catch (error) {
+    console.error('Get all users error:', error);
+    res.status(500).json({
+      status: 500,
+      message: 'Error retrieving users',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 exports.updateUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { firstName, lastName, phone, bio } = req.body;
-
-    // Verify user owns this profile or is admin
-    if (req.user.userId !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({
-        status: 403,
-        message: 'Forbidden'
-      });
-    }
+    const { firstName, lastName, phone } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -190,7 +212,6 @@ exports.updateUserProfile = async (req, res) => {
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
     if (phone) user.phone = phone;
-    if (bio !== undefined) user.bio = bio;
 
     await user.save();
 
@@ -203,9 +224,7 @@ exports.updateUserProfile = async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
-        bio: user.bio,
-        profilePicture: user.profilePicture,
-        coverImage: user.coverImage
+        profilePicture: user.profilePicture
       }
     });
   } catch (error) {
@@ -213,7 +232,7 @@ exports.updateUserProfile = async (req, res) => {
     res.status(500).json({
       status: 500,
       message: 'Error updating profile',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
 };

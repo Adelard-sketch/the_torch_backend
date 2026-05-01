@@ -1,9 +1,16 @@
 const express = require('express');
 const { verifyToken } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
-const { uploadProfilePicture, uploadCoverImage, getUserProfile, updateUserProfile } = require('../controllers/userController');
+const { uploadProfilePicture, uploadCoverImage, getUserProfile, updateUserProfile, getAllUsers } = require('../controllers/userController');
 
 const router = express.Router();
+
+/**
+ * @route   GET /api/users
+ * @desc    Get all users (admin only)
+ * @access  Private (admin only)
+ */
+router.get('/', verifyToken, getAllUsers);
 
 /**
  * @route   POST /api/users/:userId/profile-picture
