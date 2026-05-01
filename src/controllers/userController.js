@@ -229,20 +229,15 @@ exports.getUserProfile = async (req, res) => {
 
 /**
  * @route   GET /api/users
- * @desc    Get all users (admin only)
- * @access  Private (admin only)
+ * @desc    Get all users (accessible to all authenticated users for browsing and messaging)
+ * @access  Private (requires authentication)
  */
 exports.getAllUsers = async (req, res) => {
   try {
-    // Check if user is admin
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        status: 403,
-        message: 'Forbidden: Admin access required'
-      });
-    }
-
-    // Fetch all users, excluding password
+    // All authenticated users can browse other users
+    // This is needed for messaging and community features
+    
+    // Fetch all users, excluding password and sensitive fields
     const users = await User.find({ isActive: true })
       .select('-passwordHash')
       .sort({ createdAt: -1 });
